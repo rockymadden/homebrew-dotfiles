@@ -15,11 +15,11 @@ $ brew tap rockymadden/dotfiles
 ```bash
 $ brew dotfiles --help
 Usage:
-  brew dotfiles install <username> [--username|-u] [--silent|-s]
+  brew dotfiles install <username> [--overwrite|-o] [--silent|-s]
   brew dotfiles uninstall [--silent|-s]
 
 Commands:
-  install       Install dotfiles corresponding to <username>/dotfiles
+  install       Install dotfiles corresponding to username/dotfiles
   uninstall     Uninstall dotfiles
 ```
 
