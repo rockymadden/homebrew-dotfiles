@@ -17,10 +17,14 @@ $ brew dotfiles --help
 Usage:
   brew dotfiles install <username> [--overwrite|-o] [--silent|-s]
   brew dotfiles uninstall [--silent|-s]
+  brew dotfiles upgrade [--silent|-s]
+  brew dotfiles which [--silent|-s]
 
 Commands:
-  install       Install dotfiles corresponding to username/dotfiles
-  uninstall     Uninstall dotfiles
+  install       Install dotfiles corresponding to github.com:username/dotfiles
+  uninstall     Uninstall installed dotfiles
+  upgrade       Upgrade installed dotfiles
+  which         Output installed dotfiles username
 ```
 
 ## License
