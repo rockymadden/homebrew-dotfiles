@@ -22,7 +22,7 @@ case "${1}" in
 
     ${0} uninstall --silent
     mkdir -p "${CD}/Dotfiles"
-    mkdir -p "${UD}"
+    mkdir -p "${UD}/${USERNAME}"
 
     test -z "${SILENT}" && echo -n 'Downloading: '
     curl -f -L -s -o "${CD}/Dotfiles/${USERNAME}-master.tar.gz" "https://github.com/${USERNAME}/dotfiles/archive/master.tar.gz"
@@ -32,29 +32,29 @@ case "${1}" in
     esac
 
     test -z "${SILENT}" && echo -n 'Decompressing: '
-    tar -x -f "${CD}/Dotfiles/${USERNAME}-master.tar.gz" -C "${UD}" --strip 1
+    tar -x -f "${CD}/Dotfiles/${USERNAME}-master.tar.gz" -C "${UD}/${USERNAME}" --strip 1
     case "$?" in
       0) test -z "${SILENT}" && echo 'done' ;;
       *) test -z "${SILENT}" && echo 'fail' ; exit 1 ;;
     esac
 
     test -z "${SILENT}" && echo -n 'Securing: '
-    chmod -R g-rwx "${UD}" && chmod -R o-rwx "${UD}"
+    chmod -R g-rwx "${UD}/${USERNAME}" && chmod -R o-rwx "${UD}/${USERNAME}"
     case "$?" in
       0) test -z "${SILENT}" && echo 'done' ;;
       *) test -z "${SILENT}" && echo 'fail' ; exit 1 ;;
     esac
 
     test -z "${SILENT}" && echo -n 'Stubbing dotfile directories: '
-    find "${UD}" -type d | tail -n +2 | sed "s|${UD}|${HD}|" | xargs -I{} mkdir -p {}
+    find "${UD}/${USERNAME}" -type d | tail -n +2 | sed "s|${UD}/${USERNAME}|${HD}|" | xargs -I{} mkdir -p {}
     case "$?" in
       0) test -z "${SILENT}" && echo 'done' ;;
       *) test -z "${SILENT}" && echo 'fail' ; exit 1 ;;
     esac
 
     test -z "${SILENT}" && echo -n 'Symlinking dotfile files: '
-    test -n "${OVERWRITE}" && find "${UD}" -type f ! -name '.DS_Store' | sed "s|${UD}|${HD}|" | xargs -I{} rm -f {}
-    find "${UD}" -type f ! -name '.DS_Store' | sed "s|${UD}||" | xargs -I{} ln -s ${UD}{} ${HD}{}
+    test -n "${OVERWRITE}" && find "${UD}/${USERNAME}" -type f ! -name '.DS_Store' | sed "s|${UD}/${USERNAME}|${HD}|" | xargs -I{} rm -f {}
+    find "${UD}/${USERNAME}" -type f ! -name '.DS_Store' | sed "s|${UD}/${USERNAME}||" | xargs -I{} ln -s ${UD}/${USERNAME}{} ${HD}{}
     case "$?" in
       0) test -z "${SILENT}" && echo 'done' ;;
       *) test -z "${SILENT}" && echo 'fail' ; exit 1 ;;
@@ -79,14 +79,52 @@ case "${1}" in
     esac
   ;;
 
+  upgrade)
+    while (( "$#" )); do
+      case "${2}" in
+        --silent) SILENT='0' ; shift ;;
+        -s) SILENT='0' ; shift ;;
+        *) shift ;;
+      esac
+    done
+
+    test -z "${SILENT}" && echo -n 'Upgrading: '
+    USERNAME=$(${0} which)
+    test -n "${USERNAME}" && ${0} install ${USERNAME} --silent
+    case "$?" in
+      0) test -z "${SILENT}" && echo 'done' ;;
+      *) test -z "${SILENT}" && echo 'fail' ; exit 1 ;;
+    esac
+  ;;
+
+  which)
+    while (( "$#" )); do
+      case "${2}" in
+        --silent) SILENT='0' ; shift ;;
+        -s) SILENT='0' ; shift ;;
+        *) shift ;;
+      esac
+    done
+
+    USERNAME=$(ls -1 /usr/local/var/dotfiles 2>/dev/null | head -n 1)
+    case "${USERNAME}" in
+      '') exit 1 ;;
+      *) test -z "${SILENT}" && echo "${USERNAME}" ;;
+    esac
+  ;;
+
   --help)
     echo 'Usage:'
     echo "  brew dotfiles install <username> [--overwrite|-o] [--silent|-s]"
     echo "  brew dotfiles uninstall [--silent|-s]"
+    echo "  brew dotfiles upgrade [--silent|-s]"
+    echo "  brew dotfiles which [--silent|-s]"
     echo
     echo "Commands:"
-    echo "  install       Install dotfiles corresponding to username/dotfiles"
-    echo "  uninstall     Uninstall dotfiles"
+    echo "  install       Install dotfiles corresponding to github.com:username/dotfiles"
+    echo "  uninstall     Uninstall installed dotfiles"
+    echo "  upgrade       Upgrade installed dotfiles"
+    echo "  which         Output installed dotfiles username"
   ;;
 
   *) ${0} --help ; exit 1 ;;
