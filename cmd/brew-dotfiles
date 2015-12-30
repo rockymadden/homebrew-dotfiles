@@ -4,112 +4,98 @@ CD=$(brew --cache)
 HD=~/
 UD=/usr/local/var/dotfiles
 
+bold='\033[1m'
+lblue='\033[1;34m'
+normal='\033[0m'
+white='\033[0;37m'
+
 case "${1}" in
   install)
     while (( "$#" )); do
       case "${2}" in
-        --overwrite) OVERWRITE='0' ; shift ;;
-        --silent) SILENT='0' ; shift ;;
-        --username=*) USERNAME=${2/--username=/''} ; shift ;;
-        -o) OVERWRITE='0' ; shift ;;
-        -s) SILENT='0' ; shift ;;
-        -u*) USERNAME=${3} ; shift ; shift ;;
-        *) test -n "${2}" && USERNAME=${2} ; shift ;;
+        --overwrite) overwrite='0' ; shift ;;
+        --silent) silent='0' ; shift ;;
+        --username=*) username=${2/--username=/''} ; shift ;;
+        -o) overwrite='0' ; shift ;;
+        -s) silent='0' ; shift ;;
+        -u*) username=${3} ; shift ; shift ;;
+        *) test -n "${2}" && username=${2} ; shift ;;
       esac
     done
 
-    test -z "${USERNAME}" && read -e -p 'Enter username (e.g. rockymadden): ' USERNAME
+    test -z "${username}" && read -e -p 'Enter username (e.g. rockymadden): ' username
 
     ${0} uninstall --silent
     mkdir -p "${CD}/Dotfiles"
-    mkdir -p "${UD}/${USERNAME}"
+    mkdir -p "${UD}/${username}"
 
-    test -z "${SILENT}" && echo -n 'Downloading: '
-    curl -f -L -s -o "${CD}/Dotfiles/${USERNAME}-master.tar.gz" "https://github.com/${USERNAME}/dotfiles/archive/master.tar.gz"
-    case "$?" in
-      0) test -z "${SILENT}" && echo 'done' ;;
-      *) test -z "${SILENT}" && echo 'fail' ; exit 1 ;;
-    esac
+    test -z "${silent}" && echo -e "${lblue}==>${normal} ${white}${bold}Downloading https://github.com/${username}/dotfiles/archive/master.tar.gz${normal}"
+    curl -f -L -s -o "${CD}/Dotfiles/${username}-master.tar.gz" "https://github.com/${username}/dotfiles/archive/master.tar.gz"
+    test $? -ne 0 && { test -z "${silent}" && echo 'Failed' ; exit 1; }
 
-    test -z "${SILENT}" && echo -n 'Decompressing: '
-    tar -x -f "${CD}/Dotfiles/${USERNAME}-master.tar.gz" -C "${UD}/${USERNAME}" --strip 1
-    case "$?" in
-      0) test -z "${SILENT}" && echo 'done' ;;
-      *) test -z "${SILENT}" && echo 'fail' ; exit 1 ;;
-    esac
+    test -z "${silent}" && echo -e "${lblue}==>${normal} ${white}${bold}Decompressing${normal}"
+    tar -x -f "${CD}/Dotfiles/${username}-master.tar.gz" -C "${UD}/${username}" --strip 1
+    test $? -ne 0 && { test -z "${silent}" && echo 'Failed' ; exit 1; }
 
-    test -z "${SILENT}" && echo -n 'Securing: '
-    chmod -R g-rwx "${UD}/${USERNAME}" && chmod -R o-rwx "${UD}/${USERNAME}"
-    case "$?" in
-      0) test -z "${SILENT}" && echo 'done' ;;
-      *) test -z "${SILENT}" && echo 'fail' ; exit 1 ;;
-    esac
+    test -z "${silent}" && echo -e "${lblue}==>${normal} ${white}${bold}Securing${normal}"
+    chmod -R g-rwx "${UD}/${username}" && chmod -R o-rwx "${UD}/${username}"
+    test $? -ne 0 && { test -z "${silent}" && echo 'Failed' ; exit 1; }
 
-    test -z "${SILENT}" && echo -n 'Stubbing dotfile directories: '
-    find "${UD}/${USERNAME}" -type d | tail -n +2 | sed "s|${UD}/${USERNAME}|${HD}|" | xargs -I{} mkdir -p {}
-    case "$?" in
-      0) test -z "${SILENT}" && echo 'done' ;;
-      *) test -z "${SILENT}" && echo 'fail' ; exit 1 ;;
-    esac
+    test -z "${silent}" && echo -e "${lblue}==>${normal} ${white}${bold}Stubbing directories${normal}"
+    find "${UD}/${username}" -type d | tail -n +2 | sed "s|${UD}/${username}|${HD}|" | xargs -I{} mkdir -p {}
+    test $? -ne 0 && { test -z "${silent}" && echo 'Failed' ; exit 1; }
 
-    test -z "${SILENT}" && echo -n 'Symlinking dotfile files: '
-    test -n "${OVERWRITE}" && find "${UD}/${USERNAME}" -type f ! -name '.DS_Store' | sed "s|${UD}/${USERNAME}|${HD}|" | xargs -I{} rm -f {}
-    find "${UD}/${USERNAME}" -type f ! -name '.DS_Store' | sed "s|${UD}/${USERNAME}||" | xargs -I{} ln -s ${UD}/${USERNAME}{} ${HD}{}
-    case "$?" in
-      0) test -z "${SILENT}" && echo 'done' ;;
-      *) test -z "${SILENT}" && echo 'fail' ; exit 1 ;;
-    esac
+    test -z "${silent}" && echo -e "${lblue}==>${normal} ${white}${bold}Symlinking files${normal}"
+    test -n "${overwrite}" && find "${UD}/${username}" -type f ! -name '.DS_Store' | sed "s|${UD}/${username}|${HD}|" | xargs -I{} rm -f {}
+    find "${UD}/${username}" -type f ! -name '.DS_Store' | sed "s|${UD}/${username}||" | xargs -I{} ln -s ${UD}/${username}{} ${HD}{}
+    test $? -ne 0 && { test -z "${silent}" && echo 'Failed' ; exit 1; }
   ;;
 
   uninstall)
     while (( "$#" )); do
       case "${2}" in
-        --silent) SILENT='0' ; shift ;;
-        -s) SILENT='0' ; shift ;;
+        --silent) silent='0' ; shift ;;
+        -s) silent='0' ; shift ;;
         *) shift ;;
       esac
     done
 
-    test -z "${SILENT}" && echo -n 'Uninstalling: '
-    rm -rf "${UD}" && \
-    find "${HD}" -type l -ls | grep "${UD}" | awk '{print $11}' | sed 's|//|/|' | xargs -I{} rm -f {}
-    case "$?" in
-      0) test -z "${SILENT}" && echo 'done' ;;
-      *) test -z "${SILENT}" && echo 'fail' ; exit 1 ;;
-    esac
+    username=$(${0} which)
+
+    test -z "${silent}" && echo -e "${lblue}==>${normal} ${white}${bold}Uninstalling ${username}/dotfiles${normal}"
+    test -n "${username}" && rm -rf "${UD}" && find "${HD}" -type l -ls | grep "${UD}" | awk '{print $11}' | sed 's|//|/|' | xargs -I{} rm -f {}
+    test $? -ne 0 && { test -z "${silent}" && echo 'Failed' ; exit 1; }
   ;;
 
   upgrade)
     while (( "$#" )); do
       case "${2}" in
-        --silent) SILENT='0' ; shift ;;
-        -s) SILENT='0' ; shift ;;
+        --silent) silent='0' ; shift ;;
+        -s) silent='0' ; shift ;;
         *) shift ;;
       esac
     done
 
-    test -z "${SILENT}" && echo -n 'Upgrading: '
-    USERNAME=$(${0} which)
-    test -n "${USERNAME}" && ${0} install ${USERNAME} --silent
-    case "$?" in
-      0) test -z "${SILENT}" && echo 'done' ;;
-      *) test -z "${SILENT}" && echo 'fail' ; exit 1 ;;
-    esac
+    username=$(${0} which)
+
+    test -z "${silent}" && echo -e "${lblue}==>${normal} ${white}${bold}Upgrading ${username}/dotfiles${normal}"
+    test -n "${username}" && ${0} install ${username} --silent
+    test $? -ne 0 && { test -z "${silent}" && echo 'Failed' ; exit 1; }
   ;;
 
   which)
     while (( "$#" )); do
       case "${2}" in
-        --silent) SILENT='0' ; shift ;;
-        -s) SILENT='0' ; shift ;;
+        --silent) silent='0' ; shift ;;
+        -s) silent='0' ; shift ;;
         *) shift ;;
       esac
     done
 
-    USERNAME=$(ls -1 /usr/local/var/dotfiles 2>/dev/null | head -n 1)
-    case "${USERNAME}" in
+    username=$(ls -1 /usr/local/var/dotfiles 2>/dev/null | head -n 1)
+    case "${username}" in
       '') exit 1 ;;
-      *) test -z "${SILENT}" && echo "${USERNAME}" ;;
+      *) test -z "${silent}" && echo "${username}" ;;
     esac
   ;;
 
